@@ -2,29 +2,47 @@
 // Purpose: Display active and recent alerts
 //
 // Features:
-// - Real-time toast notifications
-// - Alert history list
+// - Real-time alert list
+// - Alert history
 // - Resolve button for each alert
 
 import React from 'react';
 import AlertItem from './AlertItem';
 
-function AlertPanel({ alerts }) {
-  // TODO: Implement alert display logic
-  // - Filter active vs resolved
-  // - Sort by timestamp (newest first)
-  // - Show max 10 recent alerts
+function AlertPanel({ alerts, onResolve }) {
+  // Filter and sort alerts (newest first, unresolved first)
+  const sortedAlerts = [...alerts].sort((a, b) => {
+    // Unresolved alerts first
+    if (a.resolved !== b.resolved) {
+      return a.resolved ? 1 : -1;
+    }
+    // Then by timestamp (newest first)
+    return new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp);
+  });
+
+  // Show max 10 alerts
+  const displayAlerts = sortedAlerts.slice(0, 10);
 
   return (
     <div className="space-y-3">
-      {alerts && alerts.length > 0 ? (
-        alerts.map((alert) => (
-          <AlertItem key={alert.id} alert={alert} />
+      {displayAlerts.length > 0 ? (
+        displayAlerts.map((alert, index) => (
+          <AlertItem
+            key={alert.id || `alert-${index}`}
+            alert={alert}
+            onResolve={onResolve}
+          />
         ))
       ) : (
-        <p className="text-sm text-gray-500 text-center py-4">
-          No active alerts
-        </p>
+        <div className="text-center py-8">
+          <div className="text-4xl mb-2">✓</div>
+          <p className="text-sm text-gray-500">
+            All systems optimal
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            No active alerts
+          </p>
+        </div>
       )}
     </div>
   );
