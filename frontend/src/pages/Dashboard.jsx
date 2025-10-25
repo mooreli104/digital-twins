@@ -1,26 +1,22 @@
 // Main Dashboard Page
 // Purpose: Live greenhouse monitoring interface
-//
-// Features:
-// - Live sensor value cards
-// - Real-time charts
-// - Alert notifications
-// - Water savings metrics
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import SensorCard from '../components/dashboard/SensorCard';
 import AlertPanel from '../components/alerts/AlertPanel';
+import MetricsPanel from '../components/metrics/MetricsPanel';
 import { detectAlerts, saveAlert, getRecentAlerts, resolveAlert } from '../services/alertService';
+import { saveIrrigationEvent, getRecentIrrigationEvents } from '../services/irrigationService';
 
 function Dashboard() {
   const { user, signOut } = useAuth();
 
-  // Mock sensor data (will be replaced with real WebSocket data)
+  // Mock sensor data
   const [sensorData, setSensorData] = useState({
-    temperature: 80,
+    temperature: 75.2,
     humidity: 68.5,
-    soil_moisture: 45.0,
+    soil_moisture: 30.0,
     light_level: 650,
     co2: 580
   });
@@ -28,6 +24,9 @@ function Dashboard() {
   // Alerts state
   const [alerts, setAlerts] = useState([]);
   const [previousAlerts, setPreviousAlerts] = useState({});
+
+  // Irrigation tracking
+  const [irrigationEvents, setIrrigationEvents] = useState([]);
 
   // Tomato greenhouse thresholds
   const sensorConfig = [
@@ -78,9 +77,13 @@ function Dashboard() {
     }
   ];
 
-  // Load existing alerts from Supabase on mount
+  // Load existing alerts and irrigation events from Supabase on mount
   useEffect(() => {
     getRecentAlerts(10).then(setAlerts).catch(console.error);
+    getRecentIrrigationEvents(100).then(events => {
+      console.log('📊 Loaded irrigation events from Supabase:', events.length);
+      setIrrigationEvents(events);
+    }).catch(console.error);
   }, []);
 
   // Check for alerts when sensor data changes
@@ -137,16 +140,48 @@ function Dashboard() {
     }
   };
 
-  // Simulate changing values (temporary - will be removed when WebSocket is connected)
+  // Simulate changing values + irrigation logic
   useEffect(() => {
     const interval = setInterval(() => {
-      setSensorData(prev => ({
-        temperature: prev.temperature + (Math.random() - 0.5) * 2,
-        humidity: prev.humidity + (Math.random() - 0.5) * 3,
-        soil_moisture: prev.soil_moisture - 0.1, // Slowly decrease to trigger alert
-        light_level: prev.light_level + (Math.random() - 0.5) * 50,
-        co2: prev.co2 + (Math.random() - 0.5) * 20
-      }));
+      setSensorData(prev => {
+        let newSoilMoisture = prev.soil_moisture - 0.2; // Decrease over time
+
+        // Check if irrigation is needed
+        if (newSoilMoisture < 30) {
+          // Trigger irrigation event
+          const event = {
+            timestamp: new Date().toISOString(),
+            amount: 0.5, // gallons
+            triggered_by: 'automatic'
+          };
+
+          // Add to local state
+          setIrrigationEvents(prevEvents => [...prevEvents, event]);
+          console.log('💧 Irrigation triggered:', event);
+
+          // Save to Supabase
+          saveIrrigationEvent(event)
+            .then(savedEvent => {
+              console.log('✅ Irrigation event saved to Supabase');
+              // Update local event with Supabase ID
+              setIrrigationEvents(prevEvents =>
+                prevEvents.map(e => e.timestamp === event.timestamp && !e.id ? savedEvent : e)
+              );
+            })
+            .catch(err => console.error('Failed to save irrigation event:', err));
+
+          // Reset soil moisture after irrigation
+          newSoilMoisture = 55 + Math.random() * 5; // 55-60% after watering
+        }
+
+        return {
+          temperature: prev.temperature + (Math.random() - 0.5) * 2,
+          humidity: prev.humidity + (Math.random() - 0.5) * 3,
+          soil_moisture: newSoilMoisture,
+          light_level: prev.light_level + (Math.random() - 0.5) * 50,
+          co2: prev.co2 + (Math.random() - 0.5) * 20
+        };
+      });
     }, 3000); // Update every 3 seconds
 
     return () => clearInterval(interval);
@@ -209,6 +244,16 @@ function Dashboard() {
 
         {/* Right Column - Alerts & Metrics */}
         <div className="space-y-6">
+          {/* Water Savings */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Sustainability Metrics</h3>
+            <MetricsPanel
+              irrigationEvents={irrigationEvents}
+              sensorData={sensorData}
+              sensorConfig={sensorConfig}
+            />
+          </div>
+
           {/* Alerts */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-4">
@@ -220,12 +265,6 @@ function Dashboard() {
               )}
             </h3>
             <AlertPanel alerts={alerts} onResolve={handleResolveAlert} />
-          </div>
-
-          {/* Water Savings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Water Savings</h3>
-            <p className="text-gray-500 text-sm">Metrics coming soon...</p>
           </div>
         </div>
       </div>
