@@ -1,0 +1,3 @@
+# Python dependencies for sensor simulator
+redis==5.0.1
+python-dotenv==1.0.0
