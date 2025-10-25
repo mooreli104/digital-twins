@@ -9,22 +9,41 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// TODO: Initialize Supabase client
-// export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Initialize Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Auth helpers
 export async function signIn(email, password) {
-  // TODO: Implement Supabase auth sign in
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  return data;
 }
 
 export async function signUp(email, password) {
-  // TODO: Implement Supabase auth sign up
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  return data;
 }
 
 export async function signOut() {
-  // TODO: Implement Supabase auth sign out
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
 export async function getCurrentUser() {
-  // TODO: Get current authenticated user
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  return user;
+}
+
+export async function onAuthStateChange(callback) {
+  return supabase.auth.onAuthStateChange(callback);
 }
