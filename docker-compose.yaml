@@ -1,10 +1,7 @@
-# Docker Compose for FarmTwin Frontend
-version: '3.8'
-
 services:
   frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3001/api}
@@ -16,3 +13,9 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
+
+  simulator:
+    build: ./simulator
+    ports:
+      - "8080:8080"
+    
