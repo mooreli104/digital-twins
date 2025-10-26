@@ -18,8 +18,16 @@ export async function getCurrentSensors() {
 }
 
 // Fetch historical sensor data
-export async function getSensorHistory(timeRange = '7d') {
-  // TODO: Implement fetch with query params
+export async function getSensorHistory(timeRange = '7d', greenhouse_id = null, sensor_type = null) {
+  const params = new URLSearchParams({ timeRange });
+  if (greenhouse_id) params.append('greenhouse_id', greenhouse_id);
+  if (sensor_type) params.append('sensor_type', sensor_type);
+
+  const response = await fetch(`${API_BASE_URL}/sensors/history?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch sensor history: ${response.statusText}`);
+  }
+  return response.json();
 }
 
 // Fetch alert history

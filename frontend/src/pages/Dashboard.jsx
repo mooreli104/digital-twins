@@ -1,10 +1,13 @@
 // Main Dashboard Page
 // Purpose: Live greenhouse monitoring interface with real-time WebSocket data
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import SensorCard from '../components/dashboard/SensorCard';
+import SensorChart from '../components/dashboard/SensorChart';
+import WaterLossRate from '../components/dashboard/WaterLossRate';
+import IrrigationPredictor from '../components/dashboard/IrrigationPredictor';
 import AlertPanel from '../components/alerts/AlertPanel';
 import MetricsPanel from '../components/metrics/MetricsPanel';
 import {
@@ -31,7 +34,7 @@ function Dashboard() {
     humidity: 0,
     soil_moisture: 0,
     light_level: 0,
-    co2: 0,
+    co2_ppm: 0,
   });
 
   // Alerts + irrigation state
@@ -39,6 +42,15 @@ function Dashboard() {
   const [previousAlerts, setPreviousAlerts] = useState({});
   const [irrigationEvents, setIrrigationEvents] = useState([]);
   const [lastIrrigationTime, setLastIrrigationTime] = useState(null);
+
+  // Selected sensor for chart display
+  const [selectedSensor, setSelectedSensor] = useState(0); // Index of sensorConfig array
+
+  // Toggle between water loss rate and sustainability metrics
+  const [showWaterLoss, setShowWaterLoss] = useState(true);
+
+  // Toggle for irrigation predictor view
+  const [showIrrigationPredictor, setShowIrrigationPredictor] = useState(false);
 
   // Thresholds (tomato greenhouse)
   const sensorConfig = [
@@ -59,7 +71,7 @@ function Dashboard() {
         humidity: esp32Data.humidity,
         soil_moisture: esp32Data.soil_moisture,
         light_level: esp32Data.light_level || 600,
-        co2: esp32Data.co2_ppm || 700
+        co2_ppm: esp32Data.co2_ppm || 700
       });
     }
   }, [esp32Data]);
@@ -241,22 +253,139 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Charts Placeholder */}
+          {/* Sensor Trend Chart */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Sensor Trends</h2>
-            <p className="text-gray-500 text-sm">Charts coming soon...</p>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Sensor Trends</h2>
+
+              {/* Navigation Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedSensor(prev => (prev === 0 ? sensorConfig.length - 1 : prev - 1))}
+                  className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
+                  title="Previous sensor"
+                >
+                  ← Prev
+                </button>
+                <button
+                  onClick={() => setSelectedSensor(prev => (prev === sensorConfig.length - 1 ? 0 : prev + 1))}
+                  className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
+                  title="Next sensor"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+
+            {/* Sensor Selection Buttons */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {sensorConfig.map((sensor, index) => (
+                <button
+                  key={sensor.key}
+                  onClick={() => setSelectedSensor(index)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    selectedSensor === index
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {sensor.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Selected Chart */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-700 mb-3">
+                {sensorConfig[selectedSensor].name}
+              </h3>
+              <SensorChart
+                sensorKey={sensorConfig[selectedSensor].key}
+                optimalRange={{
+                  min: sensorConfig[selectedSensor].optimalMin,
+                  max: sensorConfig[selectedSensor].optimalMax
+                }}
+                criticalRange={{
+                  min: sensorConfig[selectedSensor].criticalMin,
+                  max: sensorConfig[selectedSensor].criticalMax
+                }}
+                title={sensorConfig[selectedSensor].name}
+                unit={sensorConfig[selectedSensor].unit}
+              />
+            </div>
           </div>
         </div>
 
         {/* Right Column */}
         <div className="space-y-6">
+          {/* Toggle between Water Loss Rate, Irrigation Predictor, and Sustainability Metrics */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Sustainability Metrics</h3>
-            <MetricsPanel
-              irrigationEvents={irrigationEvents}
-              sensorData={sensorData}
-              sensorConfig={sensorConfig}
-            />
+            {/* Toggle Buttons */}
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                {showWaterLoss && !showIrrigationPredictor && 'Water Loss Rate'}
+                {showIrrigationPredictor && 'Irrigation Predictor'}
+                {!showWaterLoss && !showIrrigationPredictor && 'Sustainability Metrics'}
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowWaterLoss(true);
+                    setShowIrrigationPredictor(false);
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    showWaterLoss && !showIrrigationPredictor
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Water Loss
+                </button>
+                <button
+                  onClick={() => {
+                    setShowIrrigationPredictor(true);
+                    setShowWaterLoss(false);
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    showIrrigationPredictor
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Predictor
+                </button>
+                <button
+                  onClick={() => {
+                    setShowWaterLoss(false);
+                    setShowIrrigationPredictor(false);
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    !showWaterLoss && !showIrrigationPredictor
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Metrics
+                </button>
+              </div>
+            </div>
+
+            {/* Conditional Content */}
+            {showWaterLoss && !showIrrigationPredictor ? (
+              <WaterLossRate />
+            ) : showIrrigationPredictor ? (
+              <IrrigationPredictor
+                currentSoilMoisture={sensorData.soil_moisture}
+                currentTemperature={sensorData.temperature}
+                currentHumidity={sensorData.humidity}
+              />
+            ) : (
+              <MetricsPanel
+                irrigationEvents={irrigationEvents}
+                sensorData={sensorData}
+                sensorConfig={sensorConfig}
+              />
+            )}
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">

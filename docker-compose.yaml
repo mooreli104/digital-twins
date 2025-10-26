@@ -4,7 +4,7 @@ services:
     image: redis:latest
     ports:
       - "6379:6379"
-      
+
   frontend:
     build:
       context: ./frontend
@@ -18,6 +18,8 @@ services:
       - "80:80"
     environment:
       - NODE_ENV=production
+    depends_on:
+      - backend
     restart: unless-stopped
   backend:
     build: ./backend

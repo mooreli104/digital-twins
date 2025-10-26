@@ -122,7 +122,6 @@ app.get('/api/sensors/esp32/current', (req, res) => {
 });
 app.use('/api', router);
 
-
 // Redis Setup
 // TODO: Create Redis client and subscriber for simulator data
 
