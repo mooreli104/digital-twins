@@ -38,6 +38,7 @@ function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [previousAlerts, setPreviousAlerts] = useState({});
   const [irrigationEvents, setIrrigationEvents] = useState([]);
+  const [lastIrrigationTime, setLastIrrigationTime] = useState(null);
 
   // Thresholds (tomato greenhouse)
   const sensorConfig = [
@@ -125,6 +126,46 @@ function Dashboard() {
       setPreviousAlerts(cleanedPrev);
     }
   }, [sensorData]);
+
+  // Monitor soil moisture and trigger irrigation when needed
+  useEffect(() => {
+    const soilMoisture = sensorData.soil_moisture;
+    const IRRIGATION_THRESHOLD = 30; // Trigger irrigation below 30%
+    const IRRIGATION_COOLDOWN = 60000; // Don't irrigate more than once per minute
+
+    const now = Date.now();
+    const timeSinceLastIrrigation = lastIrrigationTime ? now - lastIrrigationTime : Infinity;
+
+    if (soilMoisture > 0 && soilMoisture < IRRIGATION_THRESHOLD && timeSinceLastIrrigation > IRRIGATION_COOLDOWN) {
+      console.log(`💧 Soil moisture low (${soilMoisture.toFixed(1)}%) - triggering irrigation`);
+
+      const event = {
+        timestamp: new Date().toISOString(),
+        amount: 0.5, // gallons
+        triggered_by: 'automatic'
+      };
+
+      // Update last irrigation time
+      setLastIrrigationTime(now);
+
+      // Add to local state
+      setIrrigationEvents(prevEvents => [...prevEvents, event]);
+
+      // Save to Supabase
+      saveIrrigationEvent(event)
+        .then(savedEvent => {
+          console.log('✅ Irrigation event saved to Supabase');
+          // Update local event with Supabase ID
+          setIrrigationEvents(prevEvents =>
+            prevEvents.map(e => e.timestamp === event.timestamp && !e.id ? savedEvent : e)
+          );
+        })
+        .catch(err => console.error('Failed to save irrigation event:', err));
+
+      // Note: In a real system, this would trigger actual irrigation hardware
+      // For now, we just log the event. The simulator will naturally vary moisture levels.
+    }
+  }, [sensorData.soil_moisture, lastIrrigationTime]);
 
   // Allow user to resolve alerts
   const handleResolveAlert = async (alertId) => {
