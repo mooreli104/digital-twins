@@ -1,10 +1,11 @@
-import { supabase } from '../config/database';
-import { cache, sub, CHANNELS } from '../config/redis';
+import { supabase } from '../config/database.js';
+import { cache, sub, CHANNELS } from '../config/redis.js';
+
 // API Routes
 // Purpose: REST endpoints for frontend
 
+import express from 'express';
 
-const express = require('express');
 const router = express.Router();
 
 // GET /api/sensors/current - Get latest sensor readings
@@ -64,4 +65,4 @@ router.get('/metrics/water-savings', async (req, res) => {
   res.send(total);
 });
 
-module.exports = router;
+export default router;
