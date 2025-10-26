@@ -34,7 +34,7 @@ function Dashboard() {
     humidity: 0,
     soil_moisture: 0,
     light_level: 0,
-    co2: 0,
+    co2_ppm: 0,
   });
 
   // Alerts + irrigation state
@@ -70,7 +70,7 @@ function Dashboard() {
         humidity: esp32Data.humidity,
         soil_moisture: esp32Data.soil_moisture,
         light_level: esp32Data.light_level || 600,
-        co2: esp32Data.co2_ppm || 700
+        co2_ppm: esp32Data.co2_ppm || 700
       });
     }
   }, [esp32Data]);
