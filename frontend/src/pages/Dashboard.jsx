@@ -51,6 +51,7 @@ function Dashboard() {
   // Update sensor data when ESP32 sends new data via WebSocket
   useEffect(() => {
     if (esp32Data && esp32Connected) {
+
       console.log('🔧 Updating dashboard with ESP32 hardware data:', esp32Data);
       setSensorData({
         temperature: esp32Data.temperature,
@@ -137,61 +138,6 @@ function Dashboard() {
       console.error('Failed to resolve alert:', error);
     }
   };
-
-  // Simulate changing values + irrigation logic (only when ESP32 is NOT connected)
-  useEffect(() => {
-    // Skip mock data if ESP32 is connected and sending real data
-    if (esp32Connected) {
-      console.log('✅ ESP32 connected - using real hardware data');
-      return;
-    }
-
-    console.log('🔄 Using mock simulated data (ESP32 not connected)');
-
-    const interval = setInterval(() => {
-      setSensorData(prev => {
-        let newSoilMoisture = prev.soil_moisture - 0.2; // Decrease over time
-
-        // Check if irrigation is needed
-        if (newSoilMoisture < 30) {
-          // Trigger irrigation event
-          const event = {
-            timestamp: new Date().toISOString(),
-            amount: 0.5, // gallons
-            triggered_by: 'automatic'
-          };
-
-          // Add to local state
-          setIrrigationEvents(prevEvents => [...prevEvents, event]);
-          console.log('💧 Irrigation triggered:', event);
-
-          // Save to Supabase
-          saveIrrigationEvent(event)
-            .then(savedEvent => {
-              console.log('✅ Irrigation event saved to Supabase');
-              // Update local event with Supabase ID
-              setIrrigationEvents(prevEvents =>
-                prevEvents.map(e => e.timestamp === event.timestamp && !e.id ? savedEvent : e)
-              );
-            })
-            .catch(err => console.error('Failed to save irrigation event:', err));
-
-          // Reset soil moisture after irrigation
-          newSoilMoisture = 55 + Math.random() * 5; // 55-60% after watering
-        }
-
-        return {
-          temperature: prev.temperature + (Math.random() - 0.5) * 2,
-          humidity: prev.humidity + (Math.random() - 0.5) * 3,
-          soil_moisture: newSoilMoisture,
-          light_level: prev.light_level + (Math.random() - 0.5) * 50,
-          co2: prev.co2 + (Math.random() - 0.5) * 20
-        };
-      });
-    }, 3000); // Update every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [esp32Connected]);
 
   return (
     <div className="container mx-auto p-6">
