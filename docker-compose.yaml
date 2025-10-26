@@ -19,7 +19,10 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
   simulator:
     build: ./simulator
     ports:
