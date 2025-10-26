@@ -111,6 +111,12 @@ app.use('/api', router);
 // Redis Setup
 // TODO: Create Redis client and subscriber for simulator data
 
+await sub.subscribe('greenhouse:sensors', (message) => {
+  console.log('📡 Received sensor message:', message);
+  io.emit('sensor_data', JSON.parse(message));
+});
+
+
 // WebSocket Setup - Handle connections
 io.on('connection', (socket) => {
   console.log('🔌 Client connected:', socket.id);
