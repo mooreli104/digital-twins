@@ -41,10 +41,9 @@ def main():
     channel_name = config.REDIS_CHANNEL
     sensor_values = simulate_sensors()
     while(1):
-        # num_subscribers = redis_client.publish(channel_name, sensor_values)
-
+        num_subscribers = redis_client.publish(channel_name, json.dumps(sensor_values))
         print(f"Message '{sensor_values}' published to channel '{channel_name}'.\n", flush=True)
-        # print(f"Number of subscribers that received the message: {num_subscribers}\n")
+        print(f"Number of subscribers that received the message: {num_subscribers}\n")
 
         time.sleep(config.UPDATE_INTERVAL)
 

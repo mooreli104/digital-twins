@@ -3,7 +3,7 @@
 # Tomato optimal ranges and simulation parameters
 
 # Redis Configuration
-REDIS_HOST = 'localhost'
+REDIS_HOST = 'redis'
 REDIS_PORT = 6379
 REDIS_CHANNEL = 'greenhouse:sensors'
 

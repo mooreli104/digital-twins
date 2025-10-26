@@ -1,36 +1,10 @@
 services:
+
   redis:
-    image: redis:7-alpine
+    image: redis:latest
     ports:
       - "6379:6379"
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
-      - NODE_ENV=production
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:80}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
+      
   frontend:
     build:
       context: ./frontend
@@ -53,9 +27,5 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
-volumes:
-  redis-data:
+      - redis
+    

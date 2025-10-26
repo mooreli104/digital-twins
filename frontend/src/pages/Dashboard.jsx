@@ -9,12 +9,13 @@ import AlertPanel from '../components/alerts/AlertPanel';
 import MetricsPanel from '../components/metrics/MetricsPanel';
 import { detectAlerts, saveAlert, getRecentAlerts, resolveAlert } from '../services/alertService';
 import { saveIrrigationEvent, getRecentIrrigationEvents } from '../services/irrigationService';
+import { useESP32WebSocket } from '../hooks/useWebSocket';
 
 function Dashboard() {
   const { user, signOut } = useAuth();
 
-  // Greenhouse ID - For now using a placeholder, should come from user context or selection
-  const [greenhouseId] = useState('00000000-0000-0000-0000-000000000001');
+  // ESP32 Hardware WebSocket connection
+  const { data: esp32Data, connected: esp32Connected, error: esp32Error } = useESP32WebSocket('http://localhost:3001');
 
   // Mock sensor data
   const [sensorData, setSensorData] = useState({
@@ -57,7 +58,7 @@ function Dashboard() {
       key: 'soil_moisture',
       unit: '%',
       optimalMin: 40,
-      optimalMax: 60,
+      optimalMax: 65,
       criticalMin: 30,
       criticalMax: 75
     },
@@ -80,6 +81,20 @@ function Dashboard() {
       criticalMax: 1500
     }
   ];
+
+  // Update sensor data when ESP32 sends new data via WebSocket
+  useEffect(() => {
+    if (esp32Data && esp32Connected) {
+      console.log('🔧 Updating dashboard with ESP32 hardware data:', esp32Data);
+      setSensorData({
+        temperature: esp32Data.temperature,
+        humidity: esp32Data.humidity,
+        soil_moisture: esp32Data.soil_moisture,
+        light_level: esp32Data.light_level || 600,
+        co2: esp32Data.co2_ppm || 700
+      });
+    }
+  }, [esp32Data]);
 
   // Load existing alerts and irrigation events from Supabase on mount
   useEffect(() => {
@@ -144,8 +159,16 @@ function Dashboard() {
     }
   };
 
-  // Simulate changing values + irrigation logic
+  // Simulate changing values + irrigation logic (only when ESP32 is NOT connected)
   useEffect(() => {
+    // Skip mock data if ESP32 is connected and sending real data
+    if (esp32Connected) {
+      console.log('✅ ESP32 connected - using real hardware data');
+      return;
+    }
+
+    console.log('🔄 Using mock simulated data (ESP32 not connected)');
+
     const interval = setInterval(() => {
       setSensorData(prev => {
         let newSoilMoisture = prev.soil_moisture - 0.2; // Decrease over time
@@ -189,7 +212,7 @@ function Dashboard() {
     }, 3000); // Update every 3 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [esp32Connected]);
 
   return (
     <div className="container mx-auto p-6">
@@ -205,6 +228,24 @@ function Dashboard() {
               Logged in as: {user.email}
             </p>
           )}
+
+          {/* ESP32 Connection Status */}
+          <div className="mt-2 flex items-center gap-2">
+            {esp32Connected ? (
+              <span className="flex items-center text-sm text-green-600">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                ESP32 Hardware Connected
+              </span>
+            ) : (
+              <span className="flex items-center text-sm text-gray-500">
+                <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                Waiting for ESP32...
+              </span>
+            )}
+            {esp32Error && (
+              <span className="text-xs text-red-500">({esp32Error})</span>
+            )}
+          </div>
         </div>
 
         {/* Logout Button */}
