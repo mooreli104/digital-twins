@@ -14,7 +14,7 @@ function Dashboard() {
   const { user, signOut } = useAuth();
 
   // ESP32 Hardware WebSocket connection
-  const { data: esp32Data, connected: esp32Connected, error: esp32Error } = useESP32WebSocket('http://localhost:3001');
+  const { data: esp32Data, connected: esp32Connected, error: esp32Error } = useESP32WebSocket('http://localhost:3002');
 
   // Mock sensor data
   const [sensorData, setSensorData] = useState({
