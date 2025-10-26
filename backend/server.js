@@ -92,6 +92,7 @@ app.get('/api/sensors/esp32/current', (req, res) => {
     data: latestESP32Data
   });
 });
+
 const apiRoutes = require('./routes/api');
 app.use('/api', apiRoutes);
 

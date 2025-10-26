@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import SensorCard from '../components/dashboard/SensorCard';
 import SensorChart from '../components/dashboard/SensorChart';
+import WaterLossRate from '../components/dashboard/WaterLossRate';
 import AlertPanel from '../components/alerts/AlertPanel';
 import MetricsPanel from '../components/metrics/MetricsPanel';
 import { detectAlerts, saveAlert, getRecentAlerts, resolveAlert } from '../services/alertService';
@@ -32,6 +33,9 @@ function Dashboard() {
 
   // Irrigation tracking
   const [irrigationEvents, setIrrigationEvents] = useState([]);
+
+  // Selected sensor for chart display
+  const [selectedSensor, setSelectedSensor] = useState(0); // Index of sensorConfig array
 
   // Tomato greenhouse thresholds
   const sensorConfig = [
@@ -280,29 +284,74 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Sensor Trend Charts */}
+          {/* Sensor Trend Chart */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Sensor Trends</h2>
-            <div className="space-y-8">
-              {sensorConfig.map((sensor) => (
-                <div key={sensor.key} className="border-b last:border-b-0 pb-6 last:pb-0">
-                  <h3 className="text-lg font-medium text-gray-700 mb-3">{sensor.name}</h3>
-                  <SensorChart
-                    greenhouseId={greenhouseId}
-                    sensorKey={sensor.key}
-                    optimalRange={{ min: sensor.optimalMin, max: sensor.optimalMax }}
-                    criticalRange={{ min: sensor.criticalMin, max: sensor.criticalMax }}
-                    title={sensor.name}
-                    unit={sensor.unit}
-                  />
-                </div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Sensor Trends</h2>
+
+              {/* Navigation Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedSensor(prev => (prev === 0 ? sensorConfig.length - 1 : prev - 1))}
+                  className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
+                  title="Previous sensor"
+                >
+                  ← Prev
+                </button>
+                <button
+                  onClick={() => setSelectedSensor(prev => (prev === sensorConfig.length - 1 ? 0 : prev + 1))}
+                  className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
+                  title="Next sensor"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+
+            {/* Sensor Selection Buttons */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {sensorConfig.map((sensor, index) => (
+                <button
+                  key={sensor.key}
+                  onClick={() => setSelectedSensor(index)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    selectedSensor === index
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {sensor.name}
+                </button>
               ))}
+            </div>
+
+            {/* Selected Chart */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-700 mb-3">
+                {sensorConfig[selectedSensor].name}
+              </h3>
+              <SensorChart
+                sensorKey={sensorConfig[selectedSensor].key}
+                optimalRange={{
+                  min: sensorConfig[selectedSensor].optimalMin,
+                  max: sensorConfig[selectedSensor].optimalMax
+                }}
+                criticalRange={{
+                  min: sensorConfig[selectedSensor].criticalMin,
+                  max: sensorConfig[selectedSensor].criticalMax
+                }}
+                title={sensorConfig[selectedSensor].name}
+                unit={sensorConfig[selectedSensor].unit}
+              />
             </div>
           </div>
         </div>
 
         {/* Right Column - Alerts & Metrics */}
         <div className="space-y-6">
+          {/* Water Loss Rate */}
+          <WaterLossRate />
+
           {/* Water Savings */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-4">Sustainability Metrics</h3>

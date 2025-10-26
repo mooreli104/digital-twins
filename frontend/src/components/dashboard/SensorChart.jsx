@@ -2,7 +2,6 @@
 // Purpose: Real-time line charts using Recharts with Supabase data
 //
 // Props:
-// - greenhouseId: UUID of the greenhouse to fetch data for
 // - sensorKey: Which sensor to display (e.g., 'temperature', 'humidity', 'soil_moisture', 'light_level', 'co2')
 // - optimalRange: { min, max } for optimal zone shading
 // - criticalRange: { min, max } for critical thresholds
@@ -25,7 +24,6 @@ import { supabase } from '../../services/supabase';
 import { getSensorHistory } from '../../services/api';
 
 function SensorChart({
-  greenhouseId,
   sensorKey,
   optimalRange,
   criticalRange,
@@ -43,8 +41,8 @@ function SensorChart({
         setLoading(true);
         setError(null);
 
-        // Fetch data from API endpoint
-        const data = await getSensorHistory('24h'); // no greenhouse filter
+        // Fetch data from API endpoint (no greenhouse filter since there's only one greenhouse)
+        const data = await getSensorHistory('24h');
 
         // Reverse to show oldest to newest (API returns descending order)
         const reversedData = (data || []).reverse();
@@ -73,19 +71,19 @@ function SensorChart({
       }
     };
 
-    if (greenhouseId && sensorKey) {
+    if (sensorKey) {
       fetchSensorHistory();
 
-      // Set up real-time subscription for new data
+      // Set up real-time subscription for new data (listen to all records since greenhouseId may be null)
       const subscription = supabase
-        .channel(`sensor_history:${greenhouseId}`)
+        .channel('sensor_history:all')
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'sensor_history',
-            filter: `greenhouse_id=eq.${greenhouseId}`
+            table: 'sensor_history'
+            // No filter - listen to all records since there's only one greenhouse
           },
           (payload) => {
             const newRecord = payload.new;
@@ -113,7 +111,7 @@ function SensorChart({
         subscription.unsubscribe();
       };
     }
-  }, [greenhouseId, sensorKey]);
+  }, [sensorKey]);
 
   // Custom tooltip to show formatted data
   const CustomTooltip = ({ active, payload }) => {
