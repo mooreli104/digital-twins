@@ -39,7 +39,7 @@ const char* WIFI_SSID = "NETGEAR30";
 const char* WIFI_PASSWORD = "younghippo640";
 
 // Backend API endpoint for ESP32 hardware data - Your computer's IP
-const char* API_ENDPOINT = "http://192.168.1.29:3002/api/sensors/esp32";
+const char* API_ENDPOINT = "http://192.168.1.29:3001/api/sensors/esp32";
 
 // Sensor update interval (milliseconds) - 2 seconds matches simulator
 const unsigned long UPDATE_INTERVAL = 2000;
