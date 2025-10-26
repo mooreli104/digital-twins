@@ -19,7 +19,7 @@ Use this checklist to track progress during the hackathon.
 - [ ] Log incoming sensor data to console
 - [ ] Test: Verify backend receives data from Python
 
-### React Frontend - Hello World
+<!-- ### React Frontend - Hello World -->
 <!-- - [ ] Install dependencies (`npm install`) -->
 <!-- - [ ] Setup Tailwind CSS -->
 <!-- - [ ] Create basic layout in Dashboard.jsx
@@ -27,7 +27,7 @@ Use this checklist to track progress during the hackathon.
 
 ---
 
-## Phase 2: Live Dashboard (Hours 6-12)
+<!-- ## Phase 2: Live Dashboard (Hours 6-12) -->
 
 ### Backend - WebSocket Setup
 - [ ] Initialize Socket.io server
@@ -41,7 +41,7 @@ Use this checklist to track progress during the hackathon.
 - [ ] Update component state on sensor data
 - [ ] Test: Console.log incoming data
 
-### Frontend - Sensor Cards
+<!-- ### Frontend - Sensor Cards -->
 <!-- - [ ] Implement `SensorCard` component -->
 <!-- - [ ] Add status color logic (optimal/warning/critical) -->
 <!-- - [ ] Create 5 sensor cards in Dashboard -->
@@ -67,7 +67,7 @@ Use this checklist to track progress during the hackathon.
 - [ ] Emit alerts via WebSocket
 - [ ] Test: Manually trigger alert by simulating extreme values
 
-### Frontend - Alert Display
+<!-- ### Frontend - Alert Display -->
 <!-- - [ ] Implement `AlertItem` component
 - [ ] Implement `AlertPanel` component
 - [ ] Add toast notifications for new alerts
@@ -81,14 +81,14 @@ Use this checklist to track progress during the hackathon.
 - [ ] Add REST endpoint `/api/metrics/water-savings`
 - [ ] Test: Verify calculation accuracy
 
-### Frontend - Metrics Panel
+<!-- ### Frontend - Metrics Panel -->
 <!-- - [ ] Implement `MetricsPanel` component
 - [ ] Display water saved today
 - [ ] Display water saved this week
 - [ ] Add comparison text
 - [ ] Test: Verify metrics update correctly -->
 
-### Supabase - Database Setup
+<!-- ### Supabase - Database Setup -->
 <!-- - [ ] Create Supabase project
 - [ ] Run SQL schema from DATABASE_SCHEMA.md
 - [ ] Get API credentials
