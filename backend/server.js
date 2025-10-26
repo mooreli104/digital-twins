@@ -28,7 +28,9 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-// TODO: Import route handlers
+const apiRoutes = require('./routes/api');
+app.use('/api', apiRoutes);
+
 
 // Redis Setup
 // TODO: Create Redis client and subscriber

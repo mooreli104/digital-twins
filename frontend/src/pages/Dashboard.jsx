@@ -1,9 +1,10 @@
 // Main Dashboard Page
 // Purpose: Live greenhouse monitoring interface
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import SensorCard from '../components/dashboard/SensorCard';
+import SensorChart from '../components/dashboard/SensorChart';
 import AlertPanel from '../components/alerts/AlertPanel';
 import MetricsPanel from '../components/metrics/MetricsPanel';
 import { detectAlerts, saveAlert, getRecentAlerts, resolveAlert } from '../services/alertService';
@@ -11,6 +12,9 @@ import { saveIrrigationEvent, getRecentIrrigationEvents } from '../services/irri
 
 function Dashboard() {
   const { user, signOut } = useAuth();
+
+  // Greenhouse ID - For now using a placeholder, should come from user context or selection
+  const [greenhouseId] = useState('00000000-0000-0000-0000-000000000001');
 
   // Mock sensor data
   const [sensorData, setSensorData] = useState({
@@ -235,10 +239,24 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Charts Placeholder */}
+          {/* Sensor Trend Charts */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Sensor Trends</h2>
-            <p className="text-gray-500 text-sm">Charts coming soon...</p>
+            <div className="space-y-8">
+              {sensorConfig.map((sensor) => (
+                <div key={sensor.key} className="border-b last:border-b-0 pb-6 last:pb-0">
+                  <h3 className="text-lg font-medium text-gray-700 mb-3">{sensor.name}</h3>
+                  <SensorChart
+                    greenhouseId={greenhouseId}
+                    sensorKey={sensor.key}
+                    optimalRange={{ min: sensor.optimalMin, max: sensor.optimalMax }}
+                    criticalRange={{ min: sensor.criticalMin, max: sensor.criticalMax }}
+                    title={sensor.name}
+                    unit={sensor.unit}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
