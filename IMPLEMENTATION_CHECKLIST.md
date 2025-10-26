@@ -4,13 +4,13 @@ Use this checklist to track progress during the hackathon.
 
 ## Phase 1: Core Data Flow (Hours 0-6)
 
-### Python Simulator
+<!-- ### Python Simulator
 - [ ] Implement `simulate_sensors()` function with realistic data
 - [ ] Add day/night cycle logic (temperature, light)
 - [ ] Add soil moisture decay over time
 - [ ] Implement irrigation trigger when soil < 35%
 - [ ] Connect to Redis and publish data
-- [ ] Test: Verify data appears in Redis (`redis-cli SUBSCRIBE greenhouse:sensors`)
+- [ ] Test: Verify data appears in Redis (`redis-cli SUBSCRIBE greenhouse:sensors`) -->
 
 ### Node.js Backend - Basic Setup
 - [ ] Install dependencies (`npm install`)
