@@ -1,0 +1,192 @@
+╔════════════════════════════════════════════════════════════════════╗
+║                ESP32 GREENHOUSE SENSOR WIRING GUIDE                ║
+╚════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         COMPONENT LAYOUT                            │
+└─────────────────────────────────────────────────────────────────────┘
+
+                           ┌──────────────┐
+                           │   DHT11      │
+                           │   Sensor     │
+                           └─┬──┬───┬────┘
+                             │  │   │
+                            VCC│  DATA
+                            GND
+                             │  │   │
+                ┌────────────┘  │   └─────────────┐
+                │               │                 │
+                │               │            ┌────┴────┐
+                │               │            │ 10kΩ    │ (Optional pull-up)
+                │               │            │ Resistor│
+                │               │            └────┬────┘
+                │               │                 │
+                ▼               ▼                 ▼
+       ┌─────────────────────────────────────────────────┐
+       │                 ESP32 DevKit                    │
+       │  ┌───────────────────────────────────────────┐  │
+       │  │                                           │  │
+   ┌───┼──┤ 3.3V        GPIO 4         GPIO 34   GND ├──┼───┐
+   │   │  │   │            │               │       │  │  │   │
+   │   │  └───┼────────────┼───────────────┼───────┼──┘  │   │
+   │   │      │            │               │       │     │   │
+   │   └──────────────────────────────────────────────────┘   │
+   │          │            │               │       │          │
+   │          │            └───────────────┼───────┼──────────┤
+   │          │                            │       │          │
+   │          │                  ┌─────────┴───────┴────┐     │
+   │          │                  │  Soil Moisture       │     │
+   │          │                  │     Sensor           │     │
+   │          │                  └┬────────┬───────┬───┘     │
+   │          │                   │        │       │         │
+   │          │                  VCC     AOUT    GND         │
+   │          │                   │        │       │         │
+   │          └───────────────────┘        │       └─────────┘
+   └───────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                      CONNECTION TABLE                               │
+└─────────────────────────────────────────────────────────────────────┘
+
+  COMPONENT         PIN         →         ESP32 PIN
+  ─────────────────────────────────────────────────────────────────
+  DHT11             VCC         →         3.3V
+  DHT11             GND         →         GND
+  DHT11             DATA        →         GPIO 4
+
+  Soil Moisture     VCC         →         3.3V (or 5V*)
+  Soil Moisture     GND         →         GND
+  Soil Moisture     AOUT        →         GPIO 34 (ADC1_CH6)
+
+  *Check your sensor's specifications
+
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BREADBOARD LAYOUT (TOP VIEW)                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+Power Rails:
+  + (Red)    ─────────── 3.3V from ESP32
+  - (Blue)   ─────────── GND from ESP32
+
+     +  -
+     │  │  ┌────────────┐
+     │  │  │   DHT11    │
+     │  │  │  ┌──┐ ┌──┐ │
+     └──┼──┼──┤  └─┘  ├─┘
+        │  │  └────────┘
+        │  │      │
+        │  └──────┼─────────────────┐
+        │         │                 │
+     ┌──┴─────────┴──────────────┐  │
+     │      ESP32 DevKit          │  │
+     │                            │  │
+     │  3.3V  GPIO4  GPIO34  GND  │  │
+     └─────┬────┬──────┬──────┬──┘  │
+           │    └──────┼──────┘     │
+           │           │            │
+           │           │   ┌────────┴────────┐
+           │           │   │ Soil Moisture   │
+           │           │   │ (3 pins)        │
+           │           │   │ VCC AOUT GND    │
+           │           │   └┬───┬────┬──────┘
+           └───────────┼────┘   │    └────────┐
+                       └────────┘             │
+                                              │
+     +  -                                     │
+     │  └──────────────────────────────────────┘
+     └─────────────────────────────────────────
+
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                      PIN SPECIFICATIONS                             │
+└─────────────────────────────────────────────────────────────────────┘
+
+  GPIO 4 (DHT11 Data):
+    ├─ Function: Digital I/O
+    ├─ Voltage: 3.3V logic level
+    ├─ Pull-up: 10kΩ recommended (may be built into DHT module)
+    └─ Purpose: Reads temperature & humidity data
+
+  GPIO 34 (Soil Moisture):
+    ├─ Function: ADC1_CH6 (Analog Input)
+    ├─ Resolution: 12-bit (0-4095)
+    ├─ Voltage: 0-3.3V (DO NOT exceed 3.3V!)
+    ├─ Note: Input only, cannot be used as output
+    └─ Purpose: Reads analog voltage from moisture sensor
+
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                      SAFETY WARNINGS                                │
+└─────────────────────────────────────────────────────────────────────┘
+
+  ⚠  DO NOT connect 5V signals to ESP32 GPIO pins (max 3.3V)
+  ⚠  DHT11 should be powered from 3.3V (some modules accept 5V)
+  ⚠  Soil sensor output must not exceed 3.3V on AOUT pin
+  ⚠  Double-check all connections before powering on
+  ⚠  Use a breadboard for testing before soldering
+
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    TESTING PROCEDURE                                │
+└─────────────────────────────────────────────────────────────────────┘
+
+  Step 1: Connect only ESP32 to USB
+          - Check if it powers on (LED lights up)
+
+  Step 2: Connect DHT11 to breadboard power rails
+          - Power from ESP32 3.3V
+
+  Step 3: Connect DHT11 DATA to GPIO 4
+
+  Step 4: Connect Soil Moisture VCC and GND
+
+  Step 5: Connect Soil Moisture AOUT to GPIO 34
+
+  Step 6: Upload code and open Serial Monitor (115200 baud)
+
+  Step 7: Verify sensor readings appear
+
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                      WIRE COLOR GUIDE                               │
+└─────────────────────────────────────────────────────────────────────┘
+
+  Recommended wire colors for clarity:
+
+  RED     → Power (3.3V / VCC)
+  BLACK   → Ground (GND)
+  YELLOW  → DHT11 Data (GPIO 4)
+  GREEN   → Soil Moisture Analog (GPIO 34)
+
+
+┌─────────────────────────────────────────────────────────────────────┐
+│               OPTIONAL: ADD MORE SENSORS LATER                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+  Available ADC Pins (for more analog sensors):
+    GPIO 32 (ADC1_CH4)
+    GPIO 33 (ADC1_CH5)
+    GPIO 35 (ADC1_CH7)
+    GPIO 36 (ADC1_CH0) - Input only
+    GPIO 39 (ADC1_CH3) - Input only
+
+  Digital GPIO Pins (for I2C/SPI sensors):
+    GPIO 21, 22 (I2C: SDA, SCL)
+    GPIO 5, 18, 19, 23 (SPI)
+
+  Future sensor ideas:
+    - Light sensor: BH1750 (I2C, connect to GPIO 21/22)
+    - CO2 sensor: MQ-135 (Analog, use GPIO 32)
+    - pH sensor: Analog pH module (use GPIO 33)
+
+═══════════════════════════════════════════════════════════════════════
+
+Quick Setup Summary:
+1. DHT11: 3.3V, GND, GPIO 4
+2. Soil: 3.3V, GND, GPIO 34
+3. Update WiFi credentials in code
+4. Upload and monitor Serial output (115200 baud)
+
+═══════════════════════════════════════════════════════════════════════
