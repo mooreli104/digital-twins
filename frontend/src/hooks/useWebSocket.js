@@ -25,6 +25,11 @@ export function useESP32WebSocket(serverUrl) {
 
     let timeoutId = null;
 
+    //Listen for sensor-update events
+    socket.on('sensor-update', (newData) => {
+      setData(newData);
+    });
+
     // Listen for ESP32 sensor updates
     socket.on('esp32-update', (newData) => {
       console.log('📡 Received ESP32 data:', newData);
