@@ -22,6 +22,7 @@ import {
   Legend
 } from 'recharts';
 import { supabase } from '../../services/supabase';
+import { getSensorHistory } from '../../services/api';
 
 function SensorChart({
   greenhouseId,
@@ -35,26 +36,17 @@ function SensorChart({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch sensor history from Supabase
+  // Fetch sensor history from API
   useEffect(() => {
     const fetchSensorHistory = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Query last 60 readings for the specified greenhouse
-        const { data, error: fetchError } = await supabase
-          .from('sensor_history')
-          .select('temperature, humidity, soil_moisture, light_level, co2, timestamp')
-          .eq('greenhouse_id', greenhouseId)
-          .order('timestamp', { ascending: false })
-          .limit(60);
+        // Fetch data from API endpoint
+        const data = await getSensorHistory('24h'); // no greenhouse filter
 
-        if (fetchError) {
-          throw fetchError;
-        }
-
-        // Reverse to show oldest to newest
+        // Reverse to show oldest to newest (API returns descending order)
         const reversedData = (data || []).reverse();
 
         // Format data for Recharts
