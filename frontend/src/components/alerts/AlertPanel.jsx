@@ -21,7 +21,7 @@ function AlertPanel({ alerts, onResolve }) {
   });
 
   // Show max 10 alerts
-  const displayAlerts = sortedAlerts.slice(0, 10);
+  const displayAlerts = sortedAlerts.slice(0, 5);
 
   return (
     <div className="space-y-3">
