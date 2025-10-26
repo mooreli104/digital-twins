@@ -48,11 +48,11 @@ function Dashboard() {
     { name: 'CO₂', key: 'co2_ppm', unit: ' ppm', optimalMin: 400, optimalMax: 1000, criticalMin: 300, criticalMax: 1500 },
   ];
 
-  // Update sensor data when ESP32 sends new data via WebSocket
+  // Update sensor data whenever new data arrives (ESP32 or Simulator)
   useEffect(() => {
-    if (esp32Data && esp32Connected) {
-
-      console.log('🔧 Updating dashboard with ESP32 hardware data:', esp32Data);
+    if (esp32Data) {
+      const source = esp32Data.source || 'Unknown';
+      console.log(`📊 Updating dashboard with ${source} data:`, esp32Data);
       setSensorData({
         temperature: esp32Data.temperature,
         humidity: esp32Data.humidity,
