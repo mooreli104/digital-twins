@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import SensorCard from '../components/dashboard/SensorCard';
 import SensorChart from '../components/dashboard/SensorChart';
 import WaterLossRate from '../components/dashboard/WaterLossRate';
+import IrrigationPredictor from '../components/dashboard/IrrigationPredictor';
 import AlertPanel from '../components/alerts/AlertPanel';
 import MetricsPanel from '../components/metrics/MetricsPanel';
 import { detectAlerts, saveAlert, getRecentAlerts, resolveAlert } from '../services/alertService';
@@ -36,6 +37,12 @@ function Dashboard() {
 
   // Selected sensor for chart display
   const [selectedSensor, setSelectedSensor] = useState(0); // Index of sensorConfig array
+
+  // Toggle between water loss rate and sustainability metrics
+  const [showWaterLoss, setShowWaterLoss] = useState(true);
+
+  // Toggle for irrigation predictor view
+  const [showIrrigationPredictor, setShowIrrigationPredictor] = useState(false);
 
   // Tomato greenhouse thresholds
   const sensorConfig = [
@@ -349,17 +356,74 @@ function Dashboard() {
 
         {/* Right Column - Alerts & Metrics */}
         <div className="space-y-6">
-          {/* Water Loss Rate */}
-          <WaterLossRate />
-
-          {/* Water Savings */}
+          {/* Toggle between Water Loss Rate, Irrigation Predictor, and Sustainability Metrics */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Sustainability Metrics</h3>
-            <MetricsPanel
-              irrigationEvents={irrigationEvents}
-              sensorData={sensorData}
-              sensorConfig={sensorConfig}
-            />
+            {/* Toggle Buttons */}
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                {showWaterLoss && !showIrrigationPredictor && 'Water Loss Rate'}
+                {showIrrigationPredictor && 'Irrigation Predictor'}
+                {!showWaterLoss && !showIrrigationPredictor && 'Sustainability Metrics'}
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowWaterLoss(true);
+                    setShowIrrigationPredictor(false);
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    showWaterLoss && !showIrrigationPredictor
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Water Loss
+                </button>
+                <button
+                  onClick={() => {
+                    setShowIrrigationPredictor(true);
+                    setShowWaterLoss(false);
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    showIrrigationPredictor
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Predictor
+                </button>
+                <button
+                  onClick={() => {
+                    setShowWaterLoss(false);
+                    setShowIrrigationPredictor(false);
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    !showWaterLoss && !showIrrigationPredictor
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Metrics
+                </button>
+              </div>
+            </div>
+
+            {/* Conditional Content */}
+            {showWaterLoss && !showIrrigationPredictor ? (
+              <WaterLossRate />
+            ) : showIrrigationPredictor ? (
+              <IrrigationPredictor
+                currentSoilMoisture={sensorData.soil_moisture}
+                currentTemperature={sensorData.temperature}
+                currentHumidity={sensorData.humidity}
+              />
+            ) : (
+              <MetricsPanel
+                irrigationEvents={irrigationEvents}
+                sensorData={sensorData}
+                sensorConfig={sensorConfig}
+              />
+            )}
           </div>
 
           {/* Alerts */}
