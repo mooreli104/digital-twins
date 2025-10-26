@@ -57,7 +57,7 @@ function Dashboard() {
       key: 'soil_moisture',
       unit: '%',
       optimalMin: 40,
-      optimalMax: 60,
+      optimalMax: 65,
       criticalMin: 30,
       criticalMax: 75
     },

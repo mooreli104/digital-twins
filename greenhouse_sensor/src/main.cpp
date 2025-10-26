@@ -182,12 +182,12 @@ float readSoilMoisture() {
 
   // Convert to percentage (0-100%)
   // Typical soil moisture sensors:
-  // - Dry soil: ~3000-4095
-  // - Wet soil: ~1000-1500
+  // - Dry soil: ~3500-4095
+  // - Wet soil: ~1000-3000
   // Adjust these values based on your sensor calibration
 
-  const int DRY_VALUE = 3000;   // Sensor value in dry soil
-  const int WET_VALUE = 1500;   // Sensor value in wet soil
+  const int DRY_VALUE = 3200;   // Sensor value in dry soil
+  const int WET_VALUE = 2200;   // Sensor value in wet soil
 
   // Map the raw value to percentage (inverted: higher raw value = drier soil)
   float moisturePercent = map(rawValue, DRY_VALUE, WET_VALUE, 0, 100);
