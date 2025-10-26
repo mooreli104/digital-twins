@@ -1,11 +1,13 @@
 // Redis Configuration
 // Purpose: Redis client setup for pub/sub and caching
 
-const redis = require('redis');
+import { createClient } from 'redis';
 
 const REDIS_CONFIG = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
+  socket:{
+    host: process.env.REDIS_HOST || 'redis',
+    port: process.env.REDIS_PORT || 6379,
+  },
 };
 
 const CHANNELS = {
@@ -14,30 +16,20 @@ const CHANNELS = {
 };
 
 // Create Redis clients
-const publisherClient = redis.createClient(REDIS_CONFIG);
-const subscriberClient = redis.createClient(REDIS_CONFIG);
-const cacheClient = redis.createClient(REDIS_CONFIG);
+const pub = createClient(REDIS_CONFIG);
+const sub = createClient(REDIS_CONFIG);
+const cache = createClient(REDIS_CONFIG);
 
-// Error handling
-publisherClient.on('error', (err) => console.error('Redis Publisher Error:', err));
-subscriberClient.on('error', (err) => console.error('Redis Subscriber Error:', err));
-cacheClient.on('error', (err) => console.error('Redis Cache Error:', err));
+// Handle connection errors
+for (const client of [pub, sub, cache]) {
+  client.on('error', (err) => console.error('Redis error:', err));
+  client.connect(); // connect() returns a promise (Node Redis v4+)
+}
 
-// Connect clients
-Promise.all([
-  publisherClient.connect(),
-  subscriberClient.connect(),
-  cacheClient.connect()
-]).then(() => {
-  console.log('Redis clients connected successfully');
-}).catch(err => {
-  console.error('Failed to connect Redis clients:', err);
-});
-
-module.exports = {
+export {
   REDIS_CONFIG,
   CHANNELS,
-  publisherClient,
-  subscriberClient,
-  cacheClient,
+  pub,
+  sub,
+  cache,
 };

@@ -1,6 +1,7 @@
 {
   "name": "farmtwin-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Node.js backend for FarmTwin digital greenhouse",
   "main": "server.js",
   "scripts": {

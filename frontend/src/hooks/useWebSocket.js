@@ -27,19 +27,28 @@ export function useESP32WebSocket(serverUrl) {
 
     // Listen for ESP32 sensor updates
     socket.on('esp32-update', (newData) => {
-      console.log('📡 Received ESP32 data:', newData);
+      console.log('📡 Received data:', newData);
       setData(newData);
-      setESP32Active(true);
 
-      // Clear previous timeout
-      if (timeoutId) clearTimeout(timeoutId);
+      // Only mark as ESP32 active if the source is actually 'ESP32'
+      // (not simulator data being sent on the same channel)
+      if (newData.source === 'ESP32') {
+        setESP32Active(true);
 
-      // Set timeout to detect if ESP32 stops sending data
-      // ESP32 sends every 2 seconds, so if no data for 5 seconds, consider it inactive
-      timeoutId = setTimeout(() => {
-        console.log('⚠️ ESP32 stopped sending data (timeout)');
+        // Clear previous timeout
+        if (timeoutId) clearTimeout(timeoutId);
+
+        // Set timeout to detect if ESP32 stops sending data
+        // ESP32 sends every 2 seconds, so if no data for 5 seconds, consider it inactive
+        timeoutId = setTimeout(() => {
+          console.log('⚠️ ESP32 stopped sending data (timeout)');
+          setESP32Active(false);
+        }, 5000); // 5 seconds timeout
+      } else {
+        // This is simulator data, don't mark ESP32 as active
         setESP32Active(false);
-      }, 5000); // 5 seconds timeout
+        if (timeoutId) clearTimeout(timeoutId);
+      }
     });
 
     // Handle connection events

@@ -1,23 +1,13 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+    FROM node:20.12.0-alpine3.19
 
-# Set working directory
-WORKDIR /app
+    WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+    COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+    RUN npm install
 
-# Copy application code
-COPY . .
+    COPY . .
 
-# Expose port
-EXPOSE 3001
+    EXPOSE 3000
 
-# Set environment to production
-ENV NODE_ENV=production
-
-# Start the server
-CMD ["node", "server.js"]
+    CMD ["npm", "run", "start", "--host", "0.0.0.0", "--port", "3000"]

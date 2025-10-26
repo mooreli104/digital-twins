@@ -8,7 +8,7 @@ FROM node:18-alpine AS build
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package*.json ./
 
 # Install ALL dependencies (including devDependencies like Vite)
 RUN npm ci

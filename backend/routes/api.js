@@ -1,13 +1,18 @@
+import { supabase } from '../config/database.js';
+import { cache, sub, CHANNELS } from '../config/redis.js';
+
 // API Routes
 // Purpose: REST endpoints for frontend
 
-const express = require('express');
+import express from 'express';
+
 const router = express.Router();
-const { supabase } = require('../config/database');
 
 // GET /api/sensors/current - Get latest sensor readings
 router.get('/sensors/current', async (req, res) => {
   // TODO: Fetch from Redis cache
+  sensor_data = sub.subscribe(CHANNELS.SENSORS)
+  res.send(sensor_data)
 });
 
 // GET /api/sensors/history - Get historical data
@@ -131,7 +136,14 @@ router.post('/alerts/:id/resolve', async (req, res) => {
 
 // GET /api/metrics/water-savings - Get water savings data
 router.get('/metrics/water-savings', async (req, res) => {
-  // TODO: Calculate and return water savings
+  const { data, error } = await supabase
+  .from("irrigation_events")
+  .select("water_amount");
+
+  if (error) throw error;
+
+  const total = data.reduce((sum, row) => sum + row.water_amount, 0);
+  res.send(total);
 });
 
-module.exports = router;
+export default router;

@@ -1,7 +1,8 @@
 // Main Dashboard Page
-// Purpose: Live greenhouse monitoring interface
+// Purpose: Live greenhouse monitoring interface with real-time WebSocket data
 
 import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import SensorCard from '../components/dashboard/SensorCard';
 import SensorChart from '../components/dashboard/SensorChart';
@@ -9,8 +10,16 @@ import WaterLossRate from '../components/dashboard/WaterLossRate';
 import IrrigationPredictor from '../components/dashboard/IrrigationPredictor';
 import AlertPanel from '../components/alerts/AlertPanel';
 import MetricsPanel from '../components/metrics/MetricsPanel';
-import { detectAlerts, saveAlert, getRecentAlerts, resolveAlert } from '../services/alertService';
-import { saveIrrigationEvent, getRecentIrrigationEvents } from '../services/irrigationService';
+import {
+  detectAlerts,
+  saveAlert,
+  getRecentAlerts,
+  resolveAlert,
+} from '../services/alertService';
+import {
+  saveIrrigationEvent,
+  getRecentIrrigationEvents,
+} from '../services/irrigationService';
 import { useESP32WebSocket } from '../hooks/useWebSocket';
 
 function Dashboard() {
@@ -19,20 +28,18 @@ function Dashboard() {
   // ESP32 Hardware WebSocket connection
   const { data: esp32Data, connected: esp32Connected, error: esp32Error } = useESP32WebSocket('http://localhost:3001');
 
-  // Mock sensor data
+  // Live sensor data
   const [sensorData, setSensorData] = useState({
-    temperature: 75.2,
-    humidity: 68.5,
-    soil_moisture: 30.0,
-    light_level: 650,
-    co2: 580
+    temperature: 0,
+    humidity: 0,
+    soil_moisture: 0,
+    light_level: 0,
+    co2: 0,
   });
 
-  // Alerts state
+  // Alerts + irrigation state
   const [alerts, setAlerts] = useState([]);
   const [previousAlerts, setPreviousAlerts] = useState({});
-
-  // Irrigation tracking
   const [irrigationEvents, setIrrigationEvents] = useState([]);
 
   // Selected sensor for chart display
@@ -44,59 +51,20 @@ function Dashboard() {
   // Toggle for irrigation predictor view
   const [showIrrigationPredictor, setShowIrrigationPredictor] = useState(false);
 
-  // Tomato greenhouse thresholds
+  // Thresholds (tomato greenhouse)
   const sensorConfig = [
-    {
-      name: 'Temperature',
-      key: 'temperature',
-      unit: '°F',
-      optimalMin: 65,
-      optimalMax: 85,
-      criticalMin: 55,
-      criticalMax: 95
-    },
-    {
-      name: 'Humidity',
-      key: 'humidity',
-      unit: '%',
-      optimalMin: 60,
-      optimalMax: 80,
-      criticalMin: 40,
-      criticalMax: 90
-    },
-    {
-      name: 'Soil Moisture',
-      key: 'soil_moisture',
-      unit: '%',
-      optimalMin: 40,
-      optimalMax: 65,
-      criticalMin: 30,
-      criticalMax: 75
-    },
-    {
-      name: 'Light Level',
-      key: 'light_level',
-      unit: ' lux',
-      optimalMin: 400,
-      optimalMax: 800,
-      criticalMin: 200,
-      criticalMax: 1000
-    },
-    {
-      name: 'CO₂',
-      key: 'co2',
-      unit: ' ppm',
-      optimalMin: 400,
-      optimalMax: 1000,
-      criticalMin: 300,
-      criticalMax: 1500
-    }
+    { name: 'Temperature', key: 'temperature', unit: '°F', optimalMin: 65, optimalMax: 85, criticalMin: 55, criticalMax: 95 },
+    { name: 'Humidity', key: 'humidity', unit: '%', optimalMin: 60, optimalMax: 80, criticalMin: 40, criticalMax: 90 },
+    { name: 'Soil Moisture', key: 'soil_moisture', unit: '%', optimalMin: 40, optimalMax: 60, criticalMin: 30, criticalMax: 75 },
+    { name: 'Light Level', key: 'light_level', unit: ' lux', optimalMin: 400, optimalMax: 800, criticalMin: 200, criticalMax: 1000 },
+    { name: 'CO₂', key: 'co2_ppm', unit: ' ppm', optimalMin: 400, optimalMax: 1000, criticalMin: 300, criticalMax: 1500 },
   ];
 
-  // Update sensor data when ESP32 sends new data via WebSocket
+  // Update sensor data whenever new data arrives (ESP32 or Simulator)
   useEffect(() => {
-    if (esp32Data && esp32Connected) {
-      console.log('🔧 Updating dashboard with ESP32 hardware data:', esp32Data);
+    if (esp32Data) {
+      const source = esp32Data.source || 'Unknown';
+      console.log(`📊 Updating dashboard with ${source} data:`, esp32Data);
       setSensorData({
         temperature: esp32Data.temperature,
         humidity: esp32Data.humidity,
@@ -107,57 +75,70 @@ function Dashboard() {
     }
   }, [esp32Data]);
 
-  // Load existing alerts and irrigation events from Supabase on mount
+  // Connect to WebSocket backend
   useEffect(() => {
-    getRecentAlerts(10).then(setAlerts).catch(console.error);
-    getRecentIrrigationEvents(100).then(events => {
-      console.log('📊 Loaded irrigation events from Supabase:', events.length);
-      setIrrigationEvents(events);
-    }).catch(console.error);
+    const socket = io(import.meta.env.VITE_WS_URL || 'http://localhost:3001');
+
+    socket.on('connect', () => console.log('🛰️ Connected to WebSocket server'));
+    socket.on('disconnect', () => console.log('❌ Disconnected from WebSocket server'));
+
+    socket.on('sensor_data', (data) => {
+      try {
+        const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+        console.log('📡 Incoming sensor data:', parsed);
+        setSensorData(parsed);
+      } catch (err) {
+        console.error('Failed to parse sensor data:', err);
+      }
+    });
+
+    return () => socket.disconnect();
   }, []);
 
-  // Check for alerts when sensor data changes
+  // Load recent alerts + irrigation history from Supabase on mount
+  useEffect(() => {
+    getRecentAlerts(10).then(setAlerts).catch(console.error);
+    getRecentIrrigationEvents(100)
+      .then((events) => setIrrigationEvents(events))
+      .catch(console.error);
+  }, []);
+
+  // Detect and save new alerts whenever new sensor data arrives
   useEffect(() => {
     const newAlerts = detectAlerts(sensorData, sensorConfig, previousAlerts);
-
     if (newAlerts.length > 0) {
-      // Add to local state immediately
-      setAlerts(prev => [...newAlerts, ...prev]);
-
-      // Update previousAlerts to avoid duplicates
-      const updatedPrevious = { ...previousAlerts };
-      newAlerts.forEach(alert => {
-        updatedPrevious[alert.alertKey] = Date.now();
+      setAlerts((prev) => [...newAlerts, ...prev]);
+      const updatedPrev = { ...previousAlerts };
+      newAlerts.forEach((alert) => {
+        updatedPrev[alert.alertKey] = Date.now();
       });
-      setPreviousAlerts(updatedPrevious);
+      setPreviousAlerts(updatedPrev);
 
-      // Save to Supabase
-      newAlerts.forEach(alert => {
+      newAlerts.forEach((alert) => {
         saveAlert(alert)
-          .then(savedAlert => {
-            // Update local alert with Supabase ID
-            setAlerts(prev => prev.map(a =>
-              a.alertKey === alert.alertKey && !a.id ? savedAlert : a
-            ));
+          .then((savedAlert) => {
+            setAlerts((prev) =>
+              prev.map((a) =>
+                a.alertKey === alert.alertKey && !a.id ? savedAlert : a
+              )
+            );
           })
-          .catch(err => console.error('Failed to save alert:', err));
+          .catch((err) => console.error('Failed to save alert:', err));
       });
     }
 
-    // Clean up old previous alerts (older than 5 minutes)
+    // Clean up old alerts (>5 min old)
     const now = Date.now();
-    const cleanedPrevious = {};
+    const cleanedPrev = {};
     Object.entries(previousAlerts).forEach(([key, timestamp]) => {
-      if (now - timestamp < 5 * 60 * 1000) { // 5 minutes
-        cleanedPrevious[key] = timestamp;
-      }
+      if (now - timestamp < 5 * 60 * 1000) cleanedPrev[key] = timestamp;
     });
-    if (Object.keys(cleanedPrevious).length !== Object.keys(previousAlerts).length) {
-      setPreviousAlerts(cleanedPrevious);
+    if (Object.keys(cleanedPrev).length !== Object.keys(previousAlerts).length) {
+      setPreviousAlerts(cleanedPrev);
     }
   }, [sensorData]);
 
-  // Handle alert resolution
+  // Allow user to resolve alerts
   const handleResolveAlert = async (alertId) => {
     try {
       await resolveAlert(alertId);
@@ -170,74 +151,15 @@ function Dashboard() {
     }
   };
 
-  // Simulate changing values + irrigation logic (only when ESP32 is NOT connected)
-  useEffect(() => {
-    // Skip mock data if ESP32 is connected and sending real data
-    if (esp32Connected) {
-      console.log('✅ ESP32 connected - using real hardware data');
-      return;
-    }
-
-    console.log('🔄 Using mock simulated data (ESP32 not connected)');
-
-    const interval = setInterval(() => {
-      setSensorData(prev => {
-        let newSoilMoisture = prev.soil_moisture - 0.2; // Decrease over time
-
-        // Check if irrigation is needed
-        if (newSoilMoisture < 30) {
-          // Trigger irrigation event
-          const event = {
-            timestamp: new Date().toISOString(),
-            amount: 0.5, // gallons
-            triggered_by: 'automatic'
-          };
-
-          // Add to local state
-          setIrrigationEvents(prevEvents => [...prevEvents, event]);
-          console.log('💧 Irrigation triggered:', event);
-
-          // Save to Supabase
-          saveIrrigationEvent(event)
-            .then(savedEvent => {
-              console.log('✅ Irrigation event saved to Supabase');
-              // Update local event with Supabase ID
-              setIrrigationEvents(prevEvents =>
-                prevEvents.map(e => e.timestamp === event.timestamp && !e.id ? savedEvent : e)
-              );
-            })
-            .catch(err => console.error('Failed to save irrigation event:', err));
-
-          // Reset soil moisture after irrigation
-          newSoilMoisture = 55 + Math.random() * 5; // 55-60% after watering
-        }
-
-        return {
-          temperature: prev.temperature + (Math.random() - 0.5) * 2,
-          humidity: prev.humidity + (Math.random() - 0.5) * 3,
-          soil_moisture: newSoilMoisture,
-          light_level: prev.light_level + (Math.random() - 0.5) * 50,
-          co2: prev.co2 + (Math.random() - 0.5) * 20
-        };
-      });
-    }, 3000); // Update every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [esp32Connected]);
-
   return (
     <div className="container mx-auto p-6">
       {/* Header */}
       <header className="mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            FarmTwin Dashboard
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-800">FarmTwin Dashboard</h1>
           <p className="text-gray-600">Tomato Greenhouse - Live Monitoring</p>
           {user && (
-            <p className="text-sm text-gray-500 mt-1">
-              Logged in as: {user.email}
-            </p>
+            <p className="text-sm text-gray-500 mt-1">Logged in as: {user.email}</p>
           )}
 
           {/* ESP32 Connection Status */}
@@ -258,8 +180,6 @@ function Dashboard() {
             )}
           </div>
         </div>
-
-        {/* Logout Button */}
         <button
           onClick={signOut}
           className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -268,13 +188,14 @@ function Dashboard() {
         </button>
       </header>
 
-      {/* Main Grid Layout */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Sensor Cards */}
+        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Sensor Value Cards */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">Live Sensor Readings</h2>
+            <h2 className="text-lg font-semibold text-gray-700 mb-4">
+              Live Sensor Readings
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {sensorConfig.map((sensor) => (
                 <SensorCard
@@ -354,7 +275,7 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Right Column - Alerts & Metrics */}
+        {/* Right Column */}
         <div className="space-y-6">
           {/* Toggle between Water Loss Rate, Irrigation Predictor, and Sustainability Metrics */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -426,13 +347,12 @@ function Dashboard() {
             )}
           </div>
 
-          {/* Alerts */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-4">
               Alerts
-              {alerts.filter(a => !a.resolved).length > 0 && (
+              {alerts.filter((a) => !a.resolved).length > 0 && (
                 <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                  {alerts.filter(a => !a.resolved).length}
+                  {alerts.filter((a) => !a.resolved).length}
                 </span>
               )}
             </h3>

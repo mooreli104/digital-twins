@@ -8,27 +8,42 @@
 // - Supabase integration for auth and persistence
 // - Alert detection logic
 
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const redis = require('redis');
-const cors = require('cors');
+import express, { json } from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { sub, cache, pub, CHANNELS } from './config/redis.js';
+import router from './routes/api.js'; // if api.js is in the same directory
+import cors from 'cors';
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const ALLOWED_ORIGINS = [FRONTEND_URL, 'http://localhost', 'http://127.0.0.1'];
+
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
+const server = createServer(app);
+
+const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST']
-  }
+    origin: ALLOWED_ORIGINS,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
 });
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(
+  cors({
+    origin: ALLOWED_ORIGINS,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  })
+);
+app.use(json());
 
 // Store latest ESP32 sensor data in memory
 let latestESP32Data = null;
+let esp32Active = false;
+let esp32TimeoutId = null;
 
 // Routes
 // TODO: Import route handlers for Redis/simulator data
@@ -59,6 +74,19 @@ app.post('/api/sensors/esp32', (req, res) => {
     };
 
     console.log('🔧 ESP32 Hardware Data:', latestESP32Data);
+
+    // Mark ESP32 as active
+    esp32Active = true;
+
+    // Clear previous timeout
+    if (esp32TimeoutId) clearTimeout(esp32TimeoutId);
+
+    // Set timeout to detect if ESP32 stops sending data
+    // ESP32 sends every 2 seconds, so if no data for 5 seconds, consider it inactive
+    esp32TimeoutId = setTimeout(() => {
+      console.log('⚠️ ESP32 stopped sending data (timeout) - switching to simulator');
+      esp32Active = false;
+    }, 5000);
 
     // Broadcast to all connected WebSocket clients
     io.emit('esp32-update', latestESP32Data);
@@ -92,13 +120,30 @@ app.get('/api/sensors/esp32/current', (req, res) => {
     data: latestESP32Data
   });
 });
-
-const apiRoutes = require('./routes/api');
-app.use('/api', apiRoutes);
-
+app.use('/api', router);
 
 // Redis Setup
 // TODO: Create Redis client and subscriber for simulator data
+
+await sub.subscribe('greenhouse:sensors', (message) => {
+  // Only broadcast simulator data if ESP32 is NOT active
+  if (!esp32Active) {
+    const simulatorData = JSON.parse(message);
+    // Add source field to distinguish from ESP32 hardware data
+    const dataWithSource = {
+      ...simulatorData,
+      source: 'Simulator',
+      timestamp: new Date().toISOString()
+    };
+    console.log('📡 Received sensor message (simulator):', message);
+    io.emit('esp32-update', dataWithSource);
+  } else {
+    // ESP32 is active, suppress simulator data
+    // Optionally log this for debugging
+    // console.log('🔇 Suppressing simulator data (ESP32 active)');
+  }
+});
+
 
 // WebSocket Setup - Handle connections
 io.on('connection', (socket) => {
