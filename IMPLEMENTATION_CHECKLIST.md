@@ -19,15 +19,15 @@ Use this checklist to track progress during the hackathon.
 - [ ] Log incoming sensor data to console
 - [ ] Test: Verify backend receives data from Python
 
-### React Frontend - Hello World
-- [ ] Install dependencies (`npm install`)
-- [ ] Setup Tailwind CSS
-- [ ] Create basic layout in Dashboard.jsx
-- [ ] Test: Verify app runs at http://localhost:5173
+<!-- ### React Frontend - Hello World -->
+<!-- - [ ] Install dependencies (`npm install`) -->
+<!-- - [ ] Setup Tailwind CSS -->
+<!-- - [ ] Create basic layout in Dashboard.jsx
+- [ ] Test: Verify app runs at http://localhost:5173 -->
 
 ---
 
-## Phase 2: Live Dashboard (Hours 6-12)
+<!-- ## Phase 2: Live Dashboard (Hours 6-12) -->
 
 ### Backend - WebSocket Setup
 - [ ] Initialize Socket.io server
@@ -41,12 +41,12 @@ Use this checklist to track progress during the hackathon.
 - [ ] Update component state on sensor data
 - [ ] Test: Console.log incoming data
 
-### Frontend - Sensor Cards
-- [ ] Implement `SensorCard` component
-- [ ] Add status color logic (optimal/warning/critical)
-- [ ] Create 5 sensor cards in Dashboard
-- [ ] Add optimal range text
-- [ ] Test: Verify live updates every 2 seconds
+<!-- ### Frontend - Sensor Cards -->
+<!-- - [ ] Implement `SensorCard` component -->
+<!-- - [ ] Add status color logic (optimal/warning/critical) -->
+<!-- - [ ] Create 5 sensor cards in Dashboard -->
+<!-- - [ ] Add optimal range text -->
+<!-- - [ ] Test: Verify live updates every 2 seconds -->
 
 ### Frontend - Charts
 - [ ] Install Recharts
@@ -67,12 +67,12 @@ Use this checklist to track progress during the hackathon.
 - [ ] Emit alerts via WebSocket
 - [ ] Test: Manually trigger alert by simulating extreme values
 
-### Frontend - Alert Display
-- [ ] Implement `AlertItem` component
+<!-- ### Frontend - Alert Display -->
+<!-- - [ ] Implement `AlertItem` component
 - [ ] Implement `AlertPanel` component
 - [ ] Add toast notifications for new alerts
 - [ ] Add alert history list
-- [ ] Test: Verify alerts appear when thresholds crossed
+- [ ] Test: Verify alerts appear when thresholds crossed -->
 
 ### Backend - Water Savings Calculation
 - [ ] Track irrigation events in Redis
@@ -81,20 +81,20 @@ Use this checklist to track progress during the hackathon.
 - [ ] Add REST endpoint `/api/metrics/water-savings`
 - [ ] Test: Verify calculation accuracy
 
-### Frontend - Metrics Panel
-- [ ] Implement `MetricsPanel` component
+<!-- ### Frontend - Metrics Panel -->
+<!-- - [ ] Implement `MetricsPanel` component
 - [ ] Display water saved today
 - [ ] Display water saved this week
 - [ ] Add comparison text
-- [ ] Test: Verify metrics update correctly
+- [ ] Test: Verify metrics update correctly -->
 
-### Supabase - Database Setup
-- [ ] Create Supabase project
+<!-- ### Supabase - Database Setup -->
+<!-- - [ ] Create Supabase project
 - [ ] Run SQL schema from DATABASE_SCHEMA.md
 - [ ] Get API credentials
 - [ ] Add credentials to backend `.env`
 - [ ] Add credentials to frontend `.env`
-- [ ] Test: Verify connection
+- [ ] Test: Verify connection -->
 
 ### Backend - Supabase Integration
 - [ ] Initialize Supabase client in backend

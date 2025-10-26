@@ -17,9 +17,13 @@ import {
   saveIrrigationEvent,
   getRecentIrrigationEvents,
 } from '../services/irrigationService';
+import { useESP32WebSocket } from '../hooks/useWebSocket';
 
 function Dashboard() {
   const { user, signOut } = useAuth();
+
+  // ESP32 Hardware WebSocket connection
+  const { data: esp32Data, connected: esp32Connected, error: esp32Error } = useESP32WebSocket('http://localhost:3001');
 
   // Live sensor data
   const [sensorData, setSensorData] = useState({
@@ -43,6 +47,20 @@ function Dashboard() {
     { name: 'Light Level', key: 'light_level', unit: ' lux', optimalMin: 400, optimalMax: 800, criticalMin: 200, criticalMax: 1000 },
     { name: 'CO₂', key: 'co2_ppm', unit: ' ppm', optimalMin: 400, optimalMax: 1000, criticalMin: 300, criticalMax: 1500 },
   ];
+
+  // Update sensor data when ESP32 sends new data via WebSocket
+  useEffect(() => {
+    if (esp32Data && esp32Connected) {
+      console.log('🔧 Updating dashboard with ESP32 hardware data:', esp32Data);
+      setSensorData({
+        temperature: esp32Data.temperature,
+        humidity: esp32Data.humidity,
+        soil_moisture: esp32Data.soil_moisture,
+        light_level: esp32Data.light_level || 600,
+        co2: esp32Data.co2_ppm || 700
+      });
+    }
+  }, [esp32Data]);
 
   // Connect to WebSocket backend
   useEffect(() => {
@@ -111,17 +129,69 @@ function Dashboard() {
   const handleResolveAlert = async (alertId) => {
     try {
       await resolveAlert(alertId);
-      setAlerts((prev) =>
-        prev.map((a) =>
-          a.id === alertId
-            ? { ...a, resolved: true, resolved_at: new Date().toISOString() }
-            : a
-        )
-      );
-    } catch (err) {
-      console.error('Failed to resolve alert:', err);
+      // Update local state
+      setAlerts(prev => prev.map(alert =>
+        alert.id === alertId ? { ...alert, resolved: true, resolved_at: new Date().toISOString() } : alert
+      ));
+    } catch (error) {
+      console.error('Failed to resolve alert:', error);
     }
   };
+
+  // Simulate changing values + irrigation logic (only when ESP32 is NOT connected)
+  useEffect(() => {
+    // Skip mock data if ESP32 is connected and sending real data
+    if (esp32Connected) {
+      console.log('✅ ESP32 connected - using real hardware data');
+      return;
+    }
+
+    console.log('🔄 Using mock simulated data (ESP32 not connected)');
+
+    const interval = setInterval(() => {
+      setSensorData(prev => {
+        let newSoilMoisture = prev.soil_moisture - 0.2; // Decrease over time
+
+        // Check if irrigation is needed
+        if (newSoilMoisture < 30) {
+          // Trigger irrigation event
+          const event = {
+            timestamp: new Date().toISOString(),
+            amount: 0.5, // gallons
+            triggered_by: 'automatic'
+          };
+
+          // Add to local state
+          setIrrigationEvents(prevEvents => [...prevEvents, event]);
+          console.log('💧 Irrigation triggered:', event);
+
+          // Save to Supabase
+          saveIrrigationEvent(event)
+            .then(savedEvent => {
+              console.log('✅ Irrigation event saved to Supabase');
+              // Update local event with Supabase ID
+              setIrrigationEvents(prevEvents =>
+                prevEvents.map(e => e.timestamp === event.timestamp && !e.id ? savedEvent : e)
+              );
+            })
+            .catch(err => console.error('Failed to save irrigation event:', err));
+
+          // Reset soil moisture after irrigation
+          newSoilMoisture = 55 + Math.random() * 5; // 55-60% after watering
+        }
+
+        return {
+          temperature: prev.temperature + (Math.random() - 0.5) * 2,
+          humidity: prev.humidity + (Math.random() - 0.5) * 3,
+          soil_moisture: newSoilMoisture,
+          light_level: prev.light_level + (Math.random() - 0.5) * 50,
+          co2: prev.co2 + (Math.random() - 0.5) * 20
+        };
+      });
+    }, 3000); // Update every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [esp32Connected]);
 
   return (
     <div className="container mx-auto p-6">
@@ -133,6 +203,24 @@ function Dashboard() {
           {user && (
             <p className="text-sm text-gray-500 mt-1">Logged in as: {user.email}</p>
           )}
+
+          {/* ESP32 Connection Status */}
+          <div className="mt-2 flex items-center gap-2">
+            {esp32Connected ? (
+              <span className="flex items-center text-sm text-green-600">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                ESP32 Hardware Connected
+              </span>
+            ) : (
+              <span className="flex items-center text-sm text-gray-500">
+                <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                Waiting for ESP32...
+              </span>
+            )}
+            {esp32Error && (
+              <span className="text-xs text-red-500">({esp32Error})</span>
+            )}
+          </div>
         </div>
         <button
           onClick={signOut}
